@@ -2,29 +2,50 @@
 # scripts/create_indexes.py
 
 import os
-from pymongo import MongoClient
+import sys
+import time
+import logging
+from pymongo import MongoClient, ASCENDING, DESCENDING
 from pymongo.errors import OperationFailure
 
-# Get MongoDB connection details from environment variables
-MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017')
-DB_NAME = os.environ.get('DB_NAME', 'mit261')
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Import config from parent directory
+sys.path.append('..')
+from config import Config
 
 def create_indexes():
     """Create indexes on MongoDB collections for optimized queries"""
     try:
         # Connect to MongoDB
-        client = MongoClient(MONGO_URI)
-        db = client[DB_NAME]
+        client = MongoClient(
+            Config.MONGO_URI,
+            maxPoolSize=25,  # Increased connection pool
+            socketTimeoutMS=60000,  # Longer timeout for index creation
+            connectTimeoutMS=30000,
+            serverSelectionTimeoutMS=30000,
+            retryWrites=True,
+            compressors='zlib'
+        )
+        db = client[Config.MONGO_DBNAME]
         
-        print("Connected to MongoDB. Creating indexes...")
+        logger.info("Connected to MongoDB. Starting index creation...")
         
-        # Create compound indexes for filtering in grades collection
-        db.grades.create_index([("SemesterId", 1), ("SubjectCodes", 1)])
-        print("✅ Created index on grades: SemesterId + SubjectCodes")
+        # Create indexes for grades collection
+        logger.info("Creating indexes for grades collection...")
+        start_time = time.time()
         
-        # Create indexes for join operations
-        db.grades.create_index([("StudentId", 1)])
-        print("✅ Created index on grades: StudentId")
+        # Compound index for filtering by semester and subject
+        db.grades.create_index(
+            [("SemesterID", ASCENDING), ("SubjectCodes", ASCENDING)],
+            background=True,
+            name="semester_subject_idx"
+        )
         
         db.students.create_index([("_id", 1)])
         print("✅ Created index on students: _id")

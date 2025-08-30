@@ -35,7 +35,8 @@ def get_classlist_data(subject=None, semester=None, page=0, limit=25):
     grades_collection = db.get_collection(
         "grades",
         read_preference=ReadPreference.SECONDARY_PREFERRED,
-        read_concern=ReadConcern("local")  # Changed to local for better performance
+        read_concern=ReadConcern("local"),  # Local read concern for better performance
+        write_concern=WriteConcern(w=0)  # No write acknowledgment needed for reads
     )
     
     # Reduce page size for better performance
@@ -164,17 +165,25 @@ def get_classlist_data(subject=None, semester=None, page=0, limit=25):
                 }
             },
             
-            # Sort by student name
-            {"$sort": {"StudentName": 1}}
+            # Sort by FullName (corrected field name)
+            {"$sort": {"FullName": 1}}
         ]
         
         # Execute the second phase to get detailed data
-        cursor = grades_collection.aggregate(main_pipeline, allowDiskUse=True, batchSize=100)
+        # Use batchSize=25 to match our page size for optimal memory usage
+        cursor = grades_collection.aggregate(
+            main_pipeline, 
+            allowDiskUse=True, 
+            batchSize=limit,
+            maxTimeMS=30000  # Set a timeout of 30 seconds to prevent long-running queries
+        )
         
         # Convert cursor to list with timeout handling
-        results = []
-        for doc in cursor:
-            results.append(doc)
+        try:
+            results = list(cursor)  # More efficient than appending one by one
+        except Exception as e:
+            print(f"Error processing cursor: {str(e)}")
+            results = []
         
         execution_time = time.time() - start_time
         print(f"Aggregation completed in {execution_time:.2f} seconds")
@@ -194,7 +203,8 @@ def get_classlist_data(subject=None, semester=None, page=0, limit=25):
 # Simple in-memory cache with expiration
 _classlist_cache = {}
 _cache_expiry = {}
-CACHE_TTL = 120  # Increased cache time-to-live to 2 minutes for better performance
+CACHE_TTL = 300  # Increased cache time-to-live to 5 minutes for better performance
+CACHE_CLEANUP_THRESHOLD = 100  # Only clean up cache when it reaches this size
 
 def _get_cached_classlist_data(key):
     """Get data from cache if it exists and hasn't expired"""
@@ -208,18 +218,38 @@ def _cache_classlist_data(key, data):
     _classlist_cache[key] = data
     _cache_expiry[key] = time.time() + CACHE_TTL
     print(f"Cached data for key: {key}")
+    
+    # Clean up cache if it gets too large
+    if len(_classlist_cache) > CACHE_CLEANUP_THRESHOLD:
+        _clear_expired_cache()
 
 # Clear expired cache entries periodically
 def _clear_expired_cache():
     """Remove expired entries from cache"""
+    global _classlist_cache, _cache_expiry
+    
     current_time = time.time()
     expired_keys = [k for k, v in _cache_expiry.items() if current_time > v]
     
+    # Delete in batch for better performance
     for key in expired_keys:
-        if key in _classlist_cache:
-            del _classlist_cache[key]
-        if key in _cache_expiry:
-            del _cache_expiry[key]
+        _classlist_cache.pop(key, None)  # More efficient than checking first
+        _cache_expiry.pop(key, None)
+    
+    # If cache is still too large after removing expired entries,
+    # remove oldest entries until we're under the threshold
+    if len(_classlist_cache) > CACHE_CLEANUP_THRESHOLD:
+        # Sort by expiry time and keep only the newest entries
+        sorted_keys = sorted(_cache_expiry.items(), key=lambda x: x[1], reverse=True)
+        keys_to_keep = sorted_keys[:CACHE_CLEANUP_THRESHOLD]
+        
+        # Create new dictionaries with only the keys to keep
+        new_cache = {k: _classlist_cache[k] for k, _ in keys_to_keep}
+        new_expiry = {k: v for k, v in keys_to_keep}
+        
+        # Replace the old dictionaries
+        _classlist_cache = new_cache
+        _cache_expiry = new_expiry
     
     return len(expired_keys)
 

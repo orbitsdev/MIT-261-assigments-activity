@@ -2,36 +2,45 @@
 {% block title %}Session 2: Interactive Class List{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8 bg-white shadow-sm rounded-lg">
   <!-- Connection Status -->
-  {% if connected %}
-  <div class="alert alert-success">
-    <i class="bi bi-check-circle-fill"></i> Connected to MongoDB cluster
+  <div class="mb-6 flex items-center">
+    {% if connected %}
+    <div class="flex items-center text-gray-600">
+      <span class="inline-block w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+      <span class="text-sm">Connected to MongoDB</span>
+    </div>
+    {% else %}
+    <div class="flex items-center text-gray-600">
+      <span class="inline-block w-2 h-2 rounded-full bg-red-500 mr-2"></span>
+      <span class="text-sm">Not connected to MongoDB</span>
+    </div>
+    {% endif %}
   </div>
-  {% else %}
-  <div class="alert alert-danger">
-    <i class="bi bi-exclamation-triangle-fill"></i> Not connected to MongoDB
-  </div>
-  {% endif %}
 
   <!-- Filters -->
-  <div class="row mb-4">
-    <div class="col-md-6">
-      <form action="{{ url_for('session2_classlist.classlist_view') }}" method="get" id="filterForm">
-        <div class="mb-3">
-          <label for="semester" class="form-label">Semester:</label>
-          <select class="form-select" name="semester" id="semester" onchange="this.form.submit()">
-            <option value="">-- All Semesters --</option>
+  <div class="mb-8">
+    <div class="border-b border-gray-200 pb-2 mb-4">
+      <h2 class="text-lg font-medium text-gray-800">Filters</h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <form action="{{ url_for('session2_classlist.classlist_view') }}" method="get" id="filterForm" class="flex flex-col md:flex-row gap-4">
+        <div class="flex-1">
+          <label for="semester" class="block text-sm font-medium text-gray-600 mb-1">Semester</label>
+          <select class="w-full border-0 border-b border-gray-200 py-2 focus:outline-none focus:border-gray-400 bg-transparent" 
+                  name="semester" id="semester" onchange="this.form.submit()">
+            <option value="">All Semesters</option>
             {% for semester in semester_options %}
             <option value="{{ semester }}" {% if current_semester == semester %}selected{% endif %}>{{ semester }}</option>
             {% endfor %}
           </select>
         </div>
 
-        <div class="mb-3">
-          <label for="subject" class="form-label">Subject Code:</label>
-          <select class="form-select" name="subject" id="subject" onchange="this.form.submit()">
-            <option value="">-- All Subjects --</option>
+        <div class="flex-1">
+          <label for="subject" class="block text-sm font-medium text-gray-600 mb-1">Subject Code</label>
+          <select class="w-full border-0 border-b border-gray-200 py-2 focus:outline-none focus:border-gray-400 bg-transparent" 
+                  name="subject" id="subject" onchange="this.form.submit()">
+            <option value="">All Subjects</option>
             {% for code, description in subject_options %}
             <option value="{{ code }}" {% if current_subject == code %}selected{% endif %}>{{ code }}</option>
             {% endfor %}
@@ -42,53 +51,53 @@
   </div>
 
   <!-- Class Overview -->
-  <div class="card mb-4">
-    <div class="card-header bg-primary text-white">
-      <h5 class="mb-0"><i class="bi bi-clipboard-data"></i> Class Overview</h5>
+  <div class="mb-8">
+    <div class="border-b border-gray-200 pb-2 mb-4">
+      <h2 class="text-lg font-medium text-gray-800">Class Overview</h2>
     </div>
-    <div class="card-body">
-      <div class="row">
-        <div class="col-md-6">
-          <table class="table table-borderless">
-            <tr>
-              <th>School Year:</th>
-              <td>{{ school_year }}</td>
+    <div class="bg-white shadow-sm rounded-b-md p-4 border border-gray-200">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <table class="w-full">
+            <tr class="border-b border-gray-100">
+              <th class="text-left py-2 text-gray-600 font-medium">School Year:</th>
+              <td class="py-2">{{ school_year }}</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <th class="text-left py-2 text-gray-600 font-medium">Subject Code:</th>
+              <td class="py-2">{{ subject_code }}</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <th class="text-left py-2 text-gray-600 font-medium">Instructor:</th>
+              <td class="py-2">{{ instructor }}</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <th class="text-left py-2 text-gray-600 font-medium">General Percentile Average (GPA):</th>
+              <td class="py-2">{{ stats.gpa }}</td>
             </tr>
             <tr>
-              <th>Subject Code:</th>
-              <td>{{ subject_code }}</td>
-            </tr>
-            <tr>
-              <th>Instructor:</th>
-              <td>{{ instructor }}</td>
-            </tr>
-            <tr>
-              <th>General Percentile Average (GPA):</th>
-              <td>{{ stats.gpa }}</td>
-            </tr>
-            <tr>
-              <th>Below GPA:</th>
-              <td>{{ stats.below_gpa }}</td>
+              <th class="text-left py-2 text-gray-600 font-medium">Below GPA:</th>
+              <td class="py-2">{{ stats.below_gpa }}</td>
             </tr>
           </table>
         </div>
-        <div class="col-md-6">
-          <table class="table table-borderless">
-            <tr>
-              <th>Semester:</th>
-              <td>{{ semester_name }}</td>
+        <div>
+          <table class="w-full">
+            <tr class="border-b border-gray-100">
+              <th class="text-left py-2 text-gray-600 font-medium">Semester:</th>
+              <td class="py-2">{{ semester_name }}</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <th class="text-left py-2 text-gray-600 font-medium">Subject:</th>
+              <td class="py-2">{{ subject }}</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <th class="text-left py-2 text-gray-600 font-medium">Total Enrolled:</th>
+              <td class="py-2">{{ stats.total_enrolled }}</td>
             </tr>
             <tr>
-              <th>Subject:</th>
-              <td>{{ subject }}</td>
-            </tr>
-            <tr>
-              <th>Total Enrolled:</th>
-              <td>{{ stats.total_enrolled }}</td>
-            </tr>
-            <tr>
-              <th>Above GPA:</th>
-              <td>{{ stats.above_gpa }}</td>
+              <th class="text-left py-2 text-gray-600 font-medium">Above GPA:</th>
+              <td class="py-2">{{ stats.above_gpa }}</td>
             </tr>
           </table>
         </div>
@@ -97,55 +106,56 @@
   </div>
 
   <!-- Student Table -->
-  <div class="card">
-    <div class="card-header bg-dark text-white">
-      <h5 class="mb-0"><i class="bi bi-table"></i> Student Table</h5>
+  <div>
+    <div class="border-b border-gray-200 pb-2 mb-4">
+      <h2 class="text-lg font-medium text-gray-800">Student Table</h2>
     </div>
-    <div class="card-body">
+    <div class="bg-white shadow-sm rounded-b-md p-4 border border-gray-200">
       <!-- Loading indicator -->
-      <div id="loading-indicator" class="text-center my-5" style="display: none;">
-        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-          <span class="visually-hidden">Loading...</span>
+      <div id="loading-indicator" class="text-center py-16 bg-gray-50 rounded-md" style="display: none;">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-indigo-600">
+          <span class="sr-only">Loading...</span>
         </div>
-        <p class="mt-2">Loading student data... This may take a moment.</p>
+        <p class="mt-4 text-indigo-600 font-medium">Loading student data...</p>
+        <p class="text-sm text-gray-500 mt-1">This may take a moment for large datasets</p>
       </div>
 
       <!-- Student data table -->
-      <div id="data-table" class="table-responsive">
-        <table class="table table-striped table-bordered">
-          <thead class="table-primary">
+      <div id="data-table" class="overflow-x-auto">
+        <table class="min-w-full">
+          <thead>
             <tr>
-              <th>Student ID</th>
-              <th>Name</th>
-              <th>Course</th>
-              <th>Year</th>
-              <th>Subject</th>
-              <th>Units</th>
-              <th>Teacher</th>
-              <th>Grade</th>
-              <th>Semester</th>
-              <th>School Year</th>
+              <th class="py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">ID</th>
+              <th class="py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Name</th>
+              <th class="py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Course</th>
+              <th class="py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Year</th>
+              <th class="py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Subject</th>
+              <th class="py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Units</th>
+              <th class="py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Teacher</th>
+              <th class="py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Grade</th>
+              <th class="py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Semester</th>
+              <th class="py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">School Year</th>
             </tr>
           </thead>
           <tbody>
             {% if data %}
             {% for student in data %}
-            <tr>
-              <td>{{ student.StudentID }}</td>
-              <td>{{ student.FullName }}</td>
-              <td>{{ student.Course }}</td>
-              <td>{{ student.YearLevel }}</td>
-              <td>{{ student.Subject }}</td>
-              <td>{{ student.Units }}</td>
-              <td>{{ student.Teacher }}</td>
-              <td>{{ student.Grade }}</td>
-              <td>{{ student.Semester }}</td>
-              <td>{{ student.SchoolYear }}</td>
+            <tr class="hover:bg-gray-50 border-b border-gray-100">
+              <td class="py-3 text-sm text-gray-800">{{ student.StudentID }}</td>
+              <td class="py-3 text-sm text-gray-800 font-medium">{{ student.FullName }}</td>
+              <td class="py-3 text-sm text-gray-800">{{ student.Course }}</td>
+              <td class="py-3 text-sm text-gray-800">{{ student.YearLevel }}</td>
+              <td class="py-3 text-sm text-gray-800">{{ student.Subject }}</td>
+              <td class="py-3 text-sm text-gray-800">{{ student.Units }}</td>
+              <td class="py-3 text-sm text-gray-800">{{ student.Teacher }}</td>
+              <td class="py-3 text-sm text-gray-800">{{ student.Grade }}</td>
+              <td class="py-3 text-sm text-gray-800">{{ student.Semester }}</td>
+              <td class="py-3 text-sm text-gray-800">{{ student.SchoolYear }}</td>
             </tr>
             {% endfor %}
             {% else %}
             <tr>
-              <td colspan="10" class="text-center">No data available</td>
+              <td colspan="10" class="py-4 text-center text-sm text-gray-500">No data available</td>
             </tr>
             {% endif %}
           </tbody>
@@ -153,27 +163,25 @@
       </div>
       
       <!-- Pagination Controls -->
-      <div class="d-flex justify-content-between align-items-center p-3 bg-light">
-        <div class="text-muted">
+      <div class="flex justify-between items-center pt-6 mt-4 border-t border-gray-100">
+        <div class="text-sm text-gray-500">
           Showing {{ data|length }} of {{ page_size }} records per page
         </div>
-        <nav aria-label="Page navigation">
-          <ul class="pagination mb-0">
-            <li class="page-item {% if not has_prev %}disabled{% endif %}">
-              <a class="page-link" href="{{ url_for('session2_classlist.classlist_view', page=current_page-1, subject=current_subject, semester=current_semester) }}" aria-label="Previous">
-                <span aria-hidden="true">&laquo; Previous</span>
-              </a>
-            </li>
-            <li class="page-item active">
-              <span class="page-link">Page {{ current_page + 1 }}</span>
-            </li>
-            <li class="page-item {% if not has_next %}disabled{% endif %}">
-              <a class="page-link" href="{{ url_for('session2_classlist.classlist_view', page=current_page+1, subject=current_subject, semester=current_semester) }}" aria-label="Next">
-                <span aria-hidden="true">Next &raquo;</span>
-              </a>
-            </li>
-          </ul>
-        </nav>
+        <div class="flex space-x-2">
+          <a href="{{ url_for('session2_classlist.classlist_view', page=current_page-1, subject=current_subject, semester=current_semester) }}" 
+             class="px-4 py-2 text-sm text-gray-600 {% if not has_prev %}opacity-40 cursor-not-allowed{% else %}hover:text-gray-900{% endif %}" 
+             {% if not has_prev %}aria-disabled="true"{% endif %}>
+            &larr; Previous
+          </a>
+          <span class="px-4 py-2 text-sm text-gray-800 font-medium">
+            Page {{ current_page + 1 }}
+          </span>
+          <a href="{{ url_for('session2_classlist.classlist_view', page=current_page+1, subject=current_subject, semester=current_semester) }}" 
+             class="px-4 py-2 text-sm text-gray-600 {% if not has_next %}opacity-40 cursor-not-allowed{% else %}hover:text-gray-900{% endif %}" 
+             {% if not has_next %}aria-disabled="true"{% endif %}>
+            Next &rarr;
+          </a>
+        </div>
       </div>
     </div>
   </div>
