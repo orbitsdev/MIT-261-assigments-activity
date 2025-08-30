@@ -8,6 +8,7 @@ MIT-261-assignments-activity/
 ├── students_list.csv              # exported student data
 ├── subjects_list.csv             # exported subject data
 ├── runcommand.md                 # commands to run each script
+├── folder_structure.md           # project structure documentation
 │
 ├── app/                          # Flask application
 │   ├── __init__.py               # app factory; registers blueprints
@@ -19,16 +20,24 @@ MIT-261-assignments-activity/
 │   ├── services/
 │   │   └── classlist_service.py  # Service for class list operations
 │   ├── templates/                # HTML views
+│   │   ├── base.html             # Base template with Tailwind CSS
 │   │   └── session2/
-│   │       └── classlist.html      # Class list template
+│   │       ├── index.html        # Session 2 index page
+│   │       └── classlist.html    # Class list template
 │   └── static/                   # static assets
+│       ├── css/                  # CSS stylesheets
+│       └── js/                   # JavaScript files
+│           └── loading-indicator.js  # Loading indicator for AJAX requests
 │
 ├── scripts/                      # Python scripts for each activity
 │   ├── session1_student_subject_list.py      # Activity 1: Student and Subject Lists
 │   ├── session1_LO-2MapReducePySpark.py      # Activity 2: MapReduce with MongoDB/Pandas
-│   └── session1_LO-1ParallelvsDistributed.py # Activity 3: Parallel vs Distributed Computing
+│   ├── session1_LO-1ParallelvsDistributed.py # Activity 3: Parallel vs Distributed Computing
+│   ├── create_indexes.py                     # Script to create MongoDB indexes
+│   └── optimize_mongodb.py                   # Script for MongoDB optimization
 │
 └── documentation/                # Markdown documentation for each activity
     ├── session_1_studentlist_and_subject_list.md
     ├── session_1_LO-2MapReducePySpark.md
-    └── session_1_LO-1ParallelvsDistributed.md
+    ├── session_1_LO-1ParallelvsDistributed.md
+    └── session_2_interactive_classlist.md    # Session 2 documentation
