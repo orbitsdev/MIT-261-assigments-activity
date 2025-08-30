@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Session 2: Interactive Class List{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <div class="jumbotron bg-light p-5 rounded">
+    <h1 class="display-4">MIT 261 – Session 2</h1>
+    <p class="lead">Interactive Student Class List in a Distributed MongoDB System</p>
+    <hr class="my-4">
+    <p>This laboratory demonstrates how to connect MongoDB Atlas securely with a Python-based interactive web app (Flask) to query and analyze academic data.</p>
+    
+    <div class="row mt-4">
+      <div class="col-md-6">
+        <div class="card mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">🎯 Main Purpose</h5>
+          </div>
+          <div class="card-body">
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item">Connect MongoDB Atlas securely with Flask</li>
+              <li class="list-group-item">Demonstrate distributed database features</li>
+              <li class="list-group-item">Implement data aggregation using MongoDB pipelines</li>
+              <li class="list-group-item">Build interactive dashboards with filters</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0">🧪 Laboratory Objectives</h5>
+          </div>
+          <div class="card-body">
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item">Secure MongoDB Atlas connection with .env variables</li>
+              <li class="list-group-item">Configure ReadPreference and ReadConcern for reliability</li>
+              <li class="list-group-item">Create MongoDB aggregation pipelines</li>
+              <li class="list-group-item">Build interactive filters with Flask + HTML templates</li>
+              <li class="list-group-item">Generate student class list with GPA analysis</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mt-4">
+      <a class="btn btn-primary btn-lg" href="{{ url_for('session2_classlist.classlist_view') }}" role="button">
+        <i class="bi bi-table"></i> View Interactive Class List
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,12 +1,14 @@
 from flask import Flask
 from .routes.labs import labs_bp
+from .routes.session2_classlist import bp as session2_bp
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object("config.Config")
 
-    # Register one blueprint for all assignments
+    # Register blueprints
     app.register_blueprint(labs_bp, url_prefix="/labs")
+    app.register_blueprint(session2_bp, url_prefix="/session2")
 
     @app.get("/")
     def root():
