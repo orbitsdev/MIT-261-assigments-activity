@@ -1,6 +1,6 @@
-# session2_mapreduce_student_data.py
+# session1_LO-2MapReducePySpark.py
 # MIT 261 - Parallel and Distributed Systems
-# Session 2: MapReduce with MongoDB + Pandas (PySpark alternative)
+# Session 1: LO-2 MapReduce with MongoDB + Pandas (PySpark alternative)
 # Author: orbitsdev 🧠
 
 import os
