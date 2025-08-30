@@ -37,3 +37,12 @@ Then open your browser and navigate to:
 ##OPTIOMIZE
 py scripts/optimize_mongodb.py
 py  py scripts/create_indexes.py  
+
+
+
+SESSION3
+.venv\Scripts\activate
+streamlit run streamlit/streamlit_app.py
+
+streamlit run streamlit/streamlit_app.py
+py -m streamlit run session3_streamlit.py

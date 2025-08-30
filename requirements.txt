@@ -6,6 +6,7 @@ Flask==3.1.2
 itsdangerous==2.2.0
 Jinja2==3.1.6
 MarkupSafe==3.0.2
+matplotlib==3.8.4
 numpy==2.3.2
 pandas==2.2.2
 py4j==0.10.9.9
@@ -14,6 +15,9 @@ pyspark==4.0.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 pytz==2025.2
+reportlab==4.1.0
+seaborn==0.13.2
 six==1.17.0
+streamlit==1.36.0
 tzdata==2025.2
 Werkzeug==3.1.3
