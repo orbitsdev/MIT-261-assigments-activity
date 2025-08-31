@@ -16,6 +16,19 @@ def classlist_view():
     # Get filter parameters
     subject_filter = request.args.get("subject")
     semester_filter = request.args.get("semester")
+    school_year_filter = request.args.get("school_year")
+    teacher_filter = request.args.get("teacher")
+    
+    # Check MongoDB connection
+    mongo_connected = False
+    try:
+        db = get_db()
+        # Verify connection with a simple command
+        db.command('ping')
+        mongo_connected = True
+    except Exception as e:
+        print(f"MongoDB connection error: {e}")
+        mongo_connected = False
     
     # Get pagination parameters
     try:
@@ -29,7 +42,7 @@ def classlist_view():
     page_size = 25
 
     # Get data from service with pagination
-    class_data = get_classlist_data(subject_filter, semester_filter, page, page_size)
+    class_data = get_classlist_data(subject_filter, semester_filter, school_year_filter, teacher_filter, page, page_size)
     
     # Calculate statistics
     stats = calculate_class_stats(class_data)
@@ -88,57 +101,71 @@ def classlist_view():
                           ("CS103", "CS103"), ("CS104", "CS104"), 
                           ("CS105", "CS105")]
     
-    # Get semesters from grades collection directly
+    # Get semesters from semesters collection directly
     try:
-        # Use distinct to get unique semester IDs based on actual structure
-        # The field is SemesterID (capital ID) based on your structure
-        semester_ids = grades_collection.distinct("SemesterID")
+        # Get semesters collection
+        semesters_collection = db.get_collection("semesters")
         
-        # For semester options, use numeric values like in the screenshots
+        # Get all semesters and extract semester names
+        all_semesters = list(semesters_collection.find({}).limit(50))
+        
+        # Extract semester names
         semester_options = []
+        for semester in all_semesters:
+            semester_name = semester.get("Semester")
+            if semester_name and semester_name not in semester_options:
+                semester_options.append(semester_name)
         
-        # Convert to integers if possible and sort
-        numeric_semesters = []
-        for sem_id in semester_ids:
-            try:
-                # Try to convert to integer if it's a dict with $numberInt
-                if isinstance(sem_id, dict) and "$numberInt" in sem_id:
-                    numeric_semesters.append(int(sem_id["$numberInt"]))
-                else:
-                    # Try to convert directly
-                    numeric_semesters.append(int(sem_id))
-            except (ValueError, TypeError):
-                # If not convertible, just use as is
-                pass
+        # Sort semester options
+        semester_options.sort()
         
-        # Sort numerically
-        numeric_semesters.sort()
-        
-        # Convert back to strings for display
-        semester_options = [str(sem) for sem in numeric_semesters]
-        
-        # If still empty, check semesters collection
+        # If still empty, use default options
         if not semester_options:
-            semesters_collection = db.get_collection("semesters")
-            all_semesters = list(semesters_collection.find({}).limit(10))
-            
-            if all_semesters:
-                # Use actual semester IDs from database
-                for semester in all_semesters:
-                    sem_id = semester.get("_id")
-                    if isinstance(sem_id, dict) and "$numberInt" in sem_id:
-                        semester_options.append(sem_id["$numberInt"])
-                    else:
-                        semester_options.append(str(sem_id))
-                semester_options.sort()
-            else:
-                # Fallback to default options
-                semester_options = ["1", "2", "3", "4"]
-                print("Using default semester options")
+            semester_options = ["FirstSem", "SecondSem", "Summer"]
+            print("Using default semester name options")
     except Exception as e:
         print(f"Error fetching semesters: {e}")
-        # Provide default numeric options
-        semester_options = ["1", "2", "3", "4"]
+        # Provide default options
+        semester_options = ["FirstSem", "SecondSem", "Summer"]
+        
+    # Get school years from semesters collection
+    try:
+        # Get unique school years
+        school_years = semesters_collection.distinct("SchoolYear")
+        
+        # Get unique teachers from grades collection
+        teacher_options = grades_collection.distinct("Teachers")
+        teacher_options.sort()
+        
+        # Convert to strings and sort
+        school_year_options = []
+        for year in school_years:
+            # Handle $numberInt format
+            if isinstance(year, dict) and "$numberInt" in year:
+                school_year_options.append(str(year["$numberInt"]))
+            else:
+                school_year_options.append(str(year))
+        
+        # Sort numerically if possible
+        try:
+            school_year_options.sort(key=int)
+        except (ValueError, TypeError):
+            school_year_options.sort()
+            
+        # If empty, use default options
+        if not school_year_options:
+            school_year_options = ["2020", "2021", "2022", "2023"]
+            print("Using default school year options")
+            
+        # If teacher options are empty, use defaults
+        if not teacher_options:
+            teacher_options = ["Prof. Michelle Rivera", "Prof. Paulo Lopez", "Prof. Grace Rivera"]
+            print("Using default teacher options")
+    except Exception as e:
+        print(f"Error fetching filter options: {e}")
+        # Provide default options
+        school_year_options = ["2020", "2021", "2022", "2023"]
+        teacher_options = ["Prof. Michelle Rivera", "Prof. Paulo Lopez", "Prof. Grace Rivera"]
     
     # Get instructor name and other details for the filtered class - with error handling
     instructor = "N/A"
@@ -157,6 +184,19 @@ def classlist_view():
         except (IndexError, KeyError) as e:
             print(f"Error extracting class data details: {e}")
     
+    # Create overview object for the template
+    overview = {
+        "teacher": instructor,
+        "subject_description": subject_name,
+        "subject_code": subject_code,
+        "school_year": school_year,
+        "semester": semester_name,
+        "total_students": stats["total_enrolled"],
+        "average_grade": stats["gpa"],
+        "above_average": stats["above_gpa"],
+        "below_average": stats["below_gpa"]
+    }
+    
     # Calculate pagination info
     has_next = len(class_data) == page_size
     has_prev = page > 0
@@ -166,7 +206,10 @@ def classlist_view():
         data=class_data,
         subject_options=subject_options,
         semester_options=semester_options,
+        school_year_options=school_year_options,
+        teacher_options=teacher_options,
         stats=stats,
+        overview=overview,  # Add the overview object
         instructor=instructor,
         subject=subject_name,
         subject_code=subject_code,
@@ -174,7 +217,9 @@ def classlist_view():
         semester_name=semester_name,
         current_subject=subject_filter,
         current_semester=semester_filter,
-        connected=True,
+        current_school_year=school_year_filter,
+        current_teacher=teacher_filter,
+        mongo_connected=mongo_connected,
         # Pagination data
         current_page=page,
         has_next=has_next,
@@ -188,6 +233,20 @@ def classlist_api():
     # Get filter parameters
     subject_filter = request.args.get("subject")
     semester_filter = request.args.get("semester")
+    school_year_filter = request.args.get("school_year")
+    teacher_filter = request.args.get("teacher")
+    
+    # Check MongoDB connection
+    mongo_connected = False
+    try:
+        db = get_db()
+        # Verify connection with a simple command
+        db.command('ping')
+        mongo_connected = True
+    except Exception as e:
+        print(f"MongoDB connection error: {e}")
+        mongo_connected = False
+        return jsonify({"error": "Database connection failed", "connected": False}), 500
     
     # Get pagination parameters
     try:
@@ -205,13 +264,14 @@ def classlist_api():
         page_size = 25
     
     # Get data from service with pagination
-    class_data = get_classlist_data(subject_filter, semester_filter, page, page_size)
+    class_data = get_classlist_data(subject_filter, semester_filter, school_year_filter, teacher_filter, page, page_size)
     stats = calculate_class_stats(class_data)
     
     # Calculate pagination metadata
     has_next = len(class_data) == page_size
     
     return jsonify({
+        "connected": mongo_connected,
         "data": class_data,
         "stats": stats,
         "pagination": {
@@ -223,7 +283,8 @@ def classlist_api():
         },
         "filters": {
             "subject": subject_filter,
-            "semester": semester_filter
+            "semester": semester_filter,
+            "school_year": school_year_filter
         },
         "execution_time": {
             "timestamp": time.time(),

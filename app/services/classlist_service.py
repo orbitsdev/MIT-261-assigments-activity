@@ -9,22 +9,24 @@ from bson import ObjectId
 from functools import lru_cache
 import time
 
-def get_classlist_data(subject=None, semester=None, page=0, limit=25):
+def get_classlist_data(subject=None, semester=None, school_year=None, teacher=None, page=0, limit=25):
     """
     Aggregates student, subject, grade, and semester data into a class list view.
-    Applies optional filters for subject and semester.
+    Applies optional filters for subject, semester name, and school year.
     
     Uses ReadPreference.SECONDARY_PREFERRED for better performance and distribution of read load.
-    Uses ReadConcern.MAJORITY to ensure consistent reads across replicas.
+    Uses ReadConcern.LOCAL for better performance.
     
     Args:
         subject: Subject code filter
-        semester: Semester term filter
+        semester: Semester name filter (e.g., 'Summer', 'FirstSem')
+        school_year: School year filter (e.g., '2020', '2023')
+        teacher: Teacher name filter
         page: Page number for pagination (0-indexed)
         limit: Number of records per page
     """
     # Use the cached version if available
-    cache_key = f"{subject}_{semester}_{page}_{limit}"
+    cache_key = f"{subject}_{semester}_{school_year}_{teacher}_{page}_{limit}"
     cached_result = _get_cached_classlist_data(cache_key)
     if cached_result:
         return cached_result
@@ -51,13 +53,74 @@ def get_classlist_data(subject=None, semester=None, page=0, limit=25):
     match_conditions = {}
     if subject and subject != "-- All Subjects --":
         match_conditions["SubjectCodes"] = subject
+        
+    # Add teacher filter if provided
+    if teacher and teacher != "-- All Teachers --":
+        match_conditions["Teachers"] = teacher
+    
+    # Get semester IDs that match the semester name if provided
     if semester and semester != "-- All Semesters --":
-        # Handle semester as numeric ID based on actual structure
         try:
-            semester_id = int(semester)
-            match_conditions["SemesterID"] = semester_id
-        except (ValueError, TypeError):
+            # First, try to find semester IDs that match the provided semester name
+            semesters_collection = db.get_collection("semesters")
+            semester_docs = list(semesters_collection.find({"Semester": semester}))
+            
+            if semester_docs:
+                # If we found matching semesters, use their IDs for filtering
+                semester_ids = [doc.get("_id") for doc in semester_docs]
+                match_conditions["SemesterID"] = {"$in": semester_ids}
+            else:
+                # If no matching semester found, try using it directly (fallback)
+                match_conditions["SemesterID"] = semester
+        except Exception as e:
+            print(f"Error finding semester IDs for name {semester}: {e}")
+            # Fallback to direct matching
             match_conditions["SemesterID"] = semester
+    
+    # Add school year filter if provided
+    if school_year and school_year != "-- All Years --":
+        try:
+            # Find semester IDs for the given school year
+            semesters_collection = db.get_collection("semesters")
+            
+            # Try to convert school_year to integer if it's a string
+            try:
+                year_value = int(school_year)
+            except (ValueError, TypeError):
+                year_value = school_year
+                
+            # Find semesters with matching school year
+            year_semester_docs = list(semesters_collection.find({"SchoolYear": year_value}))
+            
+            if year_semester_docs:
+                # If we found matching semesters, use their IDs for filtering
+                year_semester_ids = [doc.get("_id") for doc in year_semester_docs]
+                
+                # If we already have a SemesterID filter, we need to find the intersection
+                if "SemesterID" in match_conditions:
+                    # If it's already a list, find intersection
+                    if isinstance(match_conditions["SemesterID"], dict) and "$in" in match_conditions["SemesterID"]:
+                        existing_ids = match_conditions["SemesterID"]["$in"]
+                        # Find intersection of the two lists
+                        intersection_ids = [id for id in existing_ids if id in year_semester_ids]
+                        match_conditions["SemesterID"] = {"$in": intersection_ids}
+                    else:
+                        # If it's a single value, check if it's in the year_semester_ids
+                        single_id = match_conditions["SemesterID"]
+                        if single_id in year_semester_ids:
+                            # Keep the single ID as is
+                            pass
+                        else:
+                            # No intersection, return empty result
+                            return []
+                else:
+                    # No existing semester filter, just add the year filter
+                    match_conditions["SemesterID"] = {"$in": year_semester_ids}
+            else:
+                # If no matching school year found, return empty result
+                return []
+        except Exception as e:
+            print(f"Error finding semester IDs for school year {school_year}: {e}")
     
     # Phase 1: Get only the IDs we need with pagination
     id_pipeline = []
